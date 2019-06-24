@@ -16,55 +16,73 @@ class Helper {
     }
 
     getBridge(bridge) {
-        var url = 'https://secretappdeveloper.com/bridgeApi.php/Bridges/' + bridge;
-        request.get({headers: headers, url: url}, function (error, response, body) {
-            var obj = JSON.parse(body);
-            var BridgeName = obj[0]["id"];
-            bridgeState = obj[0]["open"];
+        return new Promise((resolve, reject) => {
+            let answer = "";
+            request.get('https://secretappdeveloper.com/bridgeApi.php/Bridges/' + bridge, (error, response, body) => {
+                if (!error && response.statusCode === 200) {
+                    let obj = JSON.parse(body);
+                    let BridgeName = obj[0]["id"];
+                    let bridgeState = obj[0]["open"];
 
-            if (bridgeState == "begaanbaar") {
-                this.conv.ask("De " + BridgeName + " brug is begaanbaar");
-            } else //if (open == "gestremd")
-            {
-                this.conv.ask("De " + BridgeName + " brug is Open");
-            }
+                    if (bridgeState === "begaanbaar") {
+                        answer = ("De " + BridgeName + " brug is begaanbaar");
+                    } else //if (open == "gestremd")
+                    {
+                        answer = ("De " + BridgeName + " brug is Open");
+                    }
+                } else {
+                    console.log('3');
+                    answer = "De Spijkenisse brug geeft geen antwoord.";
+                }
+                this.conv.ask(answer);
+                resolve();
+            });
         });
     }
 
     closeBridge(bridge) {
-        var url = 'https://secretappdeveloper.com/bridgeApi.php/Bridges/' + bridge;
-        request.get({headers: headers, url: url}, function (error, response, body) {
-            var obj = JSON.parse(body);
-            var BridgeName = obj[0]["id"];
-            var bridgeState = obj[0]["open"];
-            var bridgeCloseTime = obj[0]["end"];
+        return new Promise((resolve, reject) => {
+            let answer = "";
+            request.get('https://secretappdeveloper.com/bridgeApi.php/Bridges/' + bridge, (error, response, body) => {
+                if (!error && response.statusCode === 200) {
+                    let obj = JSON.parse(body);
+                    let BridgeName = obj[0]["id"];
+                    let bridgeState = obj[0]["open"];
+                    let bridgeCloseTime = obj[0]["end"];
 
-            if (bridgeState == "begaanbaar") {
-                this.conv.ask("De " + BridgeName + " brug is niet open");
-            } else{
-
-                var dateNow = new Date();
-                var closeDate = new Date(bridgeCloseTime);
-                var closingTime = closeDate - dateNow;
-                this.conv.ask(("De " + BridgeName + " brug gaat dicht in"+closingTime))
-            }
+                    if (bridgeState === "begaanbaar") {
+                        answer = ("De " + BridgeName + " brug is niet open");
+                    } else {
+                        let dateNow = new Date();
+                        let closeDate = new Date(bridgeCloseTime);
+                        let closingTime = closeDate - dateNow;
+                        answer = ("De " + BridgeName + " brug gaat dicht in " + closingTime);
+                    }
+                } else {
+                    console.log('3');
+                    answer = "De Spijkenisse brug geeft geen antwoord.";
+                }
+                this.conv.ask(answer);
+                resolve();
+            });
         });
     }
-
-
 }
-const app = dialogflow().middleware(conv => {conv.helper = new Helper(conv);});
+
+const app = dialogflow().middleware(conv => {
+    conv.helper = new Helper(conv);
+});
 
 
 //intents
-app.intent(BRIDGE_STATE, conv => {
-    const Bridge = this.conv.parameters[BRIDGE_LOCATION].toLowerCase()
-    conv.helper.getBridge(Bridge);
+app.intent(BRIDGE_STATE, async (conv) => {
+    const Bridge = conv.parameters[BRIDGE_LOCATION].toLowerCase();
+    await conv.helper.getBridge(Bridge);
 });
 
-app.intent(BRIDGE_FUTURE, conv => {
-    const Bridge = this.conv.parameters[BRIDGE_LOCATION].toLowerCase()
-    conv.helper.closeBridge(Bridge);
+app.intent(BRIDGE_FUTURE, async (conv) => {
+    const Bridge = conv.parameters[BRIDGE_LOCATION].toLowerCase();
+    await conv.helper.closeBridge(Bridge);
 });
 
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest(app);
