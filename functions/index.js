@@ -2,12 +2,12 @@ const functions = require('firebase-functions');
 const {dialogflow} = require('actions-on-google');
 const tabletojson = require('tabletojson');
 const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
+const {JSDOM} = jsdom;
 
 //intents
 const BRIDGE_STATE = 'Bridge_State';
-const BRIDGE_LOCATION = 'Bridge_Location'
-const BRIDGE_FUTURE = 'Bridge_Future'
+const BRIDGE_LOCATION = 'Bridge_Location';
+const BRIDGE_FUTURE = 'Bridge_Future';
 //variables for the HTTP requests
 const request = require('request');
 var headers = {};
@@ -52,23 +52,20 @@ class Helper {
                     let BridgeName = obj[0]["id"];
                     let bridgeState = obj[0]["open"];
                     bridgeState = "open";
-                    let bridgeCloseTime = obj[0]["end"];
 
                     if (bridgeState === "begaanbaar") {
                         answer = ("De " + BridgeName + " is niet open");
+                        this.conv.ask(answer);
+                        resolve();
                     } else {
-                        let dateNow = new Date();
-                        let closeDate = new Date(bridgeCloseTime);
-                        let closingTime = closeDate - dateNow;
                         this.checkCloseTime(BridgeName);
-                        answer = ("De " + BridgeName + " gaat dicht in " + closingTime);
                     }
                 } else {
                     console.log('3');
                     answer = "De brug geeft geen antwoord.";
+                    this.conv.ask(answer);
+                    resolve();
                 }
-                this.conv.ask(answer);
-                resolve();
             });
         });
     }
@@ -82,18 +79,30 @@ class Helper {
                     //console.log(body)
                     const table = dom.window.document.querySelector("#wrapper > div.content-section-a > div.container > div > div:nth-child(1) > div > table").innerHTML;
                     //console.log(table);
-                    let tableAsJson = tabletojson.convert("<table>"+table+"</table>");
-                    tableAsJson = tabletojson[0];
+                    let tableAsJson = tabletojson.convert("<table>" + table + "</table>");
+                    let tableAsJson1 = tableAsJson[0];
+                    //console.log(tableAsJson1)
+                    bridgeName = 'Biesterbrug';
+                    tableAsJson1.forEach(function (entry) {
+                        let name = entry['Naam / Plaats'];
+                        if (name.includes(bridgeName)) {
+                            console.log(entry['Naam / Plaats']);
+                            console.log(entry['Duur']);
+                            let closingTime = ['Duur'];
 
-                    tableAsJson.forEach(elem => console.log(elem))
-                }
-                else {
+                            console.log("Time Remaining:" + closingTime);
+                            answer = ("De " + bridgeName + " gaat dicht in " + closingTime);
+                        }
+                    });
+                } else {
                     console.log('3');
                     answer = "De brug geeft geen antwoord.";
                 }
+                this.conv.ask(answer);
+                resolve();
             });
-        });
-    }
+        })
+    };
 }
 
 const app = dialogflow().middleware(conv => {
